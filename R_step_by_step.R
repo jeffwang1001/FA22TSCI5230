@@ -39,6 +39,14 @@ panderOptions('table.split.table',Inf); panderOptions('table.split.cells',Inf);
 whatisthis <- function(xx){
   list(class=class(xx),info=c(mode=mode(xx),storage.mode=storage.mode(xx)
                               ,typeof=typeof(xx)))};
+
+#Import Data
+
+Input_data <- "https://physionet.org/static/published-projects/mimic-iv-demo/mimic-iv-clinical-database-demo-1.0.zip"
+dir.create('data', showWarnings = F)
+zipped_data <- file.path('data', 'tempdata.zip')
+File_name <- download.file(Input_data, destfile = zipped_data)
+
 # R basic syntax ----
 #'
 #' # R basic syntax
