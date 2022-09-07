@@ -47,10 +47,37 @@ load("working_script.rdata")
 
 View(patients)
 
+##plotting using ggplot
 ggplot(data = patients, aes(x = anchor_age, fill = gender))+
   geom_histogram() +
   geom_vline(xintercept = 65)
 
 table(patients$gender)
 #check for duplicates in the subject_id
+
+#aggregating data: data structures
+
+Demographics <- group_by(admissions, subject_id)%>%
+  mutate(los = difftime(dischtime, admittime))%>%
+  summarise(admits = n(),
+            ethnic = length(unique(ethnicity)),
+            ethnicity_combo = paste(sort(unique(ethnicity)), collapse = ":"),
+            # language0 <- length(unique(language)),
+            # language_combo <- paste(sort(unique(language)), collapse = ":")
+            language = tail(language, 1),
+            dod = max(deathtime, na.rm = TRUE),
+            los = median(los),
+            numED = length(na.omit(edregtime)))
+
+
+ #subset(ethnic > 1)
+
+table(admissions$ethnicity)
+
+
+
+ggplot(data = Demographics, aes(x = admits)) +
+  geom_histogram()
+
+
 
