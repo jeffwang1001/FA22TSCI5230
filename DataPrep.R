@@ -79,5 +79,17 @@ table(admissions$ethnicity)
 ggplot(data = Demographics, aes(x = admits)) +
   geom_histogram()
 
+intersect(names(Demographics), names(patients))
+
+Demographics$subject_id
+
+intersect(Demographics$subject_id, patients$subject_id)
+
+setdiff(Demographics$subject_id, patients$subject_id)
+
+setdiff(Demographics$dod, patients$dod)
+
+Demographics1 <- left_join(Demographics, select(patients, -dod), by = c("subject_id"))
+
 
 
