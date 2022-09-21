@@ -92,4 +92,79 @@ setdiff(Demographics$dod, patients$dod)
 Demographics1 <- left_join(Demographics, select(patients, -dod), by = c("subject_id"))
 
 
+#patient = subset(patients, select = -c(dod))
+#paste0(letters,LETTERS, collapse = '---')
+
+############################Vanc/Zosyn study data
+# build list of keywords
+kw_abx <- c("vanco", "zosyn", "piperacillin", "tazobactam", "cefepime", "meropenam", "ertapenem", "carbapenem", "levofloxacin")
+kw_lab <- c("creatinine")
+kw_aki <- c("acute renal failure", "acute kidney injury", "acute kidney failure", "acute kidney", "acute renal insufficiency")
+kw_aki_pp <- c("postpartum", "labor and delivery")
+
+
+# search for those keywords in the tables to find the full label names
+# remove post partum from aki in last line here
+# may need to remove some of the lab labels as well (pending)
+# vertical pipe takes the arguement and uses it as an "or" command for the the list of keywords that is being searched
+label_abx <- grep(paste0(kw_abx, collapse = '|'), d_items$label, ignore.case = T, value = T, invert = F)
+label_lab <- grep(paste0(kw_lab, collapse = '|'), d_labitems$label, ignore.case = T, value = T, invert = F)
+label_aki <- grep(paste0(kw_aki, collapse = '|'), d_icd_diagnoses$long_title, ignore.case = T, value = T, invert = F)
+label_aki <- grep(paste0(kw_aki_pp, collapse = '|'), label_aki, ignore.case = T, value = T, invert = T)
+
+
+# use dplyr filter to make tables with the item_id for the keywords above
+item_ids_abx <- d_items %>% filter(label %in% label_abx)
+item_ids_lab <- d_labitems %>% filter(label %in% label_lab)
+item_ids_aki <- d_icd_diagnoses %>% filter(long_title %in% label_aki)
+
+subset(item_ids_abx, category == 'Antibiotics') #Only selects rows with category of Antibiotics
+subset(item_ids_abx, category == 'Antibiotics') %>%
+  left_join(inputevents, by = 'itemid') #By using subset first in left_join, starting off
+#by only selecting rows with antibiotics, and then pulling inputevents data for those
+#patients that received the antibiotics with our specified IDs
+
+Antibiotics <- subset(item_ids_abx, category == 'Antibiotics') %>%
+  left_join(inputevents, by = 'itemid')
+
+grep('N17', diagnoses_icd$icd_code, value = T) #ICD codes found within the dataset
+grep('^548|^N17', diagnoses_icd$icd_code, value=T) #Either 548... or N17... values
+#within the diagnosis_icd$icd_code data set
+grepl('^548|^N17', diagnoses_icd$icd_code) #True/False for each row whether it contains value
+subset(diagnoses_icd,grepl('^548|^N17',icd_code)) #Pulls only the rows that have ICD code of interest
+Akidiagnoses_icd <- subset(diagnoses_icd,grepl('^548|^N17',icd_code))
+
+Cr_labevents <- subset(item_ids_lab, fluid == "Blood") %>%
+  left_join(labevents, by = 'itemid') #Filter only blood Cr and match to lab events
+
+grepl(paste(kw_abx, collapse='|'),emar$medication)
+subset(emar,grepl(paste(kw_abx, collapse='|'),medication,ignore.case = T))$event_txt%>%
+  table()%>%sort() #Filter emar by antibiotic administration with individual event txt
+
+#merge lab events and antibiotic administration
+
+#comparing Vancomycin to Zosyn
+
+
+Antibiotic_Groupings <- group_by(Antibiotics, hadm_id)%>%
+  summarise(Vanc = 'Vancomycin' %in% label, Zosyn = any(grepl('Piperacillin', label)),
+            N = n(),
+            Other = length(grep('Piperacillin|Vancomycin',
+                                label, val = TRUE, invert = TRUE))>0,
+            Exposure1 = case_when(!Vanc ~ 'Other',
+                                  Vanc&Zosyn ~ 'Vanc & Zosyn',
+                                  Other ~ 'Vanc & Other',
+                                  !Other ~ 'Vanc',
+                                  TRUE ~ 'UNDEFINED'))
+
+#Vanc & !Zosyn & !Other ~ 'Vanc' example: make another column for exposure 2
+
+group_by(Antibiotic_Groupings, Vanc, Zosyn, Other) %>%
+  summarise(N =n())
+
+#debug = {browser();TRUE})
+
+
+
+grepl("Zosyn", Antibiotics$label)
 
