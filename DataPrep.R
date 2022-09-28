@@ -186,7 +186,8 @@ Antibiotics_dates <- Antibiotics %>%
             if(is(oo, 'try-error')){browser()}
             oo},
             group = group)%>%
-  unnest(ip_date)
+  unnest(ip_date)%>%
+  unique()
 
 Antibiotics_dates <- split(Antibiotics_dates, Antibiotics_dates$group)
 
@@ -207,8 +208,12 @@ Antibiotics_dates <- sapply(names(Antibiotics_dates), function(xx){names(Antibio
 #mutate(Antibiotics_dates,treatment = if_else(is.na(Other),'',Other))%>%
 #  View()
 
-mutate(Antibiotics_dates, across(all_of(c('Other', 'Vanc', 'Zosyn')),~coalesce(.x,'')))%>%
-  View()
+mutate(Antibiotics_dates, across(all_of(c('Other', 'Vanc', 'Zosyn')),~coalesce(.x,'')),
+       Exposure = paste(Vanc, Zosyn, Other))%>%
+  select(hadm_id, Exposure)%>%
+  unique()%>%
+  pull(Exposure)%>%
+  table()
 
 
 
