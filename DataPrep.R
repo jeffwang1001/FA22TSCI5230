@@ -33,6 +33,8 @@ library(pander); # format tables
 library(printr); # set limit on number of lines printed
 library(broom); # allows to give clean dataset
 library(dplyr); #add dplyr library
+library(tidyr);
+library(purrr);
 
 options(max.print=42);
 panderOptions('table.split.table',Inf); panderOptions('table.split.cells',Inf);
@@ -155,9 +157,72 @@ Antibiotic_Groupings <- group_by(Antibiotics, hadm_id)%>%
                                   Vanc&Zosyn ~ 'Vanc & Zosyn',
                                   Other ~ 'Vanc & Other',
                                   !Other ~ 'Vanc',
-                                  TRUE ~ 'UNDEFINED'))
-
+                                  TRUE ~ 'UNDEFINED'),
+            Exposure2 = case_when(Vanc & !Zosyn & !Other ~ 'Vanc',
+                                  Vanc & Zosyn & !Other ~ 'Vanc & Zosyn',
+                                  Vanc & Zosyn & Other ~ 'Vanc & Zosyn',
+                                  !Vanc & !Zosyn ~ 'Other'))
 #Vanc & !Zosyn & !Other ~ 'Vanc' example: make another column for exposure 2
+
+
+Admission_Scaffold <- admissions %>% select(hadm_id, admittime, dischtime) %>%
+  transmute(hadm_id = hadm_id,
+            ip_date = map2(as.Date(admittime), as.Date(dischtime), seq, by = "1 day"))%>%
+  unnest(ip_date)
+
+
+
+Antibiotics_dates <- Antibiotics %>%
+  transmute(hadm_id = hadm_id,
+            group = case_when('Vancomycin' == label ~ "Vanc",
+                              grepl('Piperacillin', label) ~ "Zosyn",
+                              TRUE ~ "Other"),
+            starttime = starttime,
+            endtime = endtime)%>%
+  unique()%>%
+  subset(!is.na(starttime) & !is.na(endtime))%>%
+  transmute(hadm_id = hadm_id,
+            ip_date = {oo <- try(map2(as.Date(starttime), as.Date(endtime), seq, by = "1 day"));
+            if(is(oo, 'try-error')){browser()}
+            oo},
+            group = group)%>%
+  unnest(ip_date)
+
+Antibiotics_dates <- split(Antibiotics_dates, Antibiotics_dates$group)
+
+# summary(Antibiotics_dates)
+# subset(Antibiotics_dates, group == 'Vanc')%>%
+#   left_join(Admission_Scaffold, .)%>%
+#   mutate(Vanc = !is.na(group))%>%
+#   select(-group)%>%
+#   View()
+
+
+Antibiotics_dates <- sapply(names(Antibiotics_dates), function(xx){names(Antibiotics_dates[[xx]])[3] <- xx
+  #browser()
+  Antibiotics_dates[[xx]]
+  },simplify = FALSE)%>%
+  Reduce(left_join, ., Admission_Scaffold)
+
+#mutate(Antibiotics_dates,treatment = if_else(is.na(Other),'',Other))%>%
+#  View()
+
+mutate(Antibiotics_dates, across(all_of(c('Other', 'Vanc', 'Zosyn')),~coalesce(.x,'')))%>%
+  View()
+
+
+
+
+#table(Antibiotics_dates$group)%>%
+#  View()
+
+
+
+# subset(Antibiotics, is.na(starttime) & is.na(endtime))
+# | is or
+
+
+
 
 group_by(Antibiotic_Groupings, Vanc, Zosyn, Other) %>%
   summarise(N =n())
