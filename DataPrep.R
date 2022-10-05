@@ -35,6 +35,7 @@ library(broom); # allows to give clean dataset
 library(dplyr); #add dplyr library
 library(tidyr);
 library(purrr);
+library(table1);
 
 options(max.print=42);
 panderOptions('table.split.table',Inf); panderOptions('table.split.cells',Inf);
@@ -215,13 +216,40 @@ mutate(Antibiotics_dates, across(all_of(c('Other', 'Vanc', 'Zosyn')),~coalesce(.
   pull(Exposure)%>%
   table()
 
+#class October 5th 2022
+
+Cr_labevents2 <- Antibiotics_dates %>%
+  group_by(hadm_id)%>%
+  #mutate(Vanc_Zosyn_Date = min(ip_date[!is.na(Vanc) & !is.na(Zosyn)]))%>%
+  summarise(Vanc_Zosyn_Date = min(ip_date[!is.na(Vanc) & !is.na(Zosyn)]))%>%
+  subset(!is.infinite(Vanc_Zosyn_Date)) %>%
+  left_join(Cr_labevents,.)%>%
+  group_by(hadm_id)%>%
+  subset(!is.na(hadm_id)) %>%
+  arrange(hadm_id,charttime)%>%
+  mutate(Vanc_Zosyn = !all(is.na(Vanc_Zosyn_Date)))
 
 
+#combining demographics and creatinine tables
+Analysis_Data <- left_join(Cr_labevents2,Demographics1)
 
+ggplot(Analysis_Data, aes(x = Vanc_Zosyn, y = valuenum)) +
+  geom_violin()
+
+paireed_analysis <- c('valuenum', 'admits', 'flag', 'Vanc_Zosyn')
+
+Analysis_Data[,paireed_analysis]%>%
+  ggpairs(aes(col = Vanc_Zosyn))
 #table(Antibiotics_dates$group)%>%
 #  View()
 
+table1(~valuenum+admits+flag+anchor_age+gender|Vanc_Zosyn, data = Analysis_Data)
 
+
+my.render.cont <- function(x) {
+  with(stats.default(x),
+       sprintf("%0.2f (%0.1f)", MEAN, SD))
+}
 
 # subset(Antibiotics, is.na(starttime) & is.na(endtime))
 # | is or
