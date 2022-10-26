@@ -266,3 +266,4 @@ group_by(Antibiotic_Groupings, Vanc, Zosyn, Other) %>%
 
 grepl("Zosyn", Antibiotics$label)
 
+export
