@@ -36,6 +36,7 @@ library(dplyr); #add dplyr library
 library(tidyr);
 library(purrr);
 library(table1);
+library(reticulate);
 
 options(max.print=42);
 panderOptions('table.split.table',Inf); panderOptions('table.split.cells',Inf);
