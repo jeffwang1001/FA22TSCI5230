@@ -38,3 +38,8 @@ dd = {}
 for ii in to_unzip.namelist():
   if ii.endswith("csv.gz"):
     dd[os.path.split(ii)[1].replace(".csv.gz","")] = pd.read_csv(to_unzip.open(ii), compression ='gzip', low_memory = False)
+
+
+
+pickle.dump(dd,file=open('data.pickle','wb'))
+
